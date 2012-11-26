@@ -1,0 +1,163 @@
+#!/bin/sh
+
+# Copyright 2012  Aten Zhang, SYSU, China
+# All rights reserved.
+#
+#   Permission to use, copy, modify, and distribute this software for
+#   any purpose with or without fee is hereby granted, provided that
+#   the above copyright notice and this permission notice appear in all
+#   copies.
+#
+#   THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+#   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#   IN NO EVENT SHALL THE AUTHORS AND COPYRIGHT HOLDERS AND THEIR
+#   CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+#   USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+#   OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#   SUCH DAMAGE.
+# -----------------------------------------------------------------------------
+#
+# Slackware SlackBuild script 
+# ===========================
+# By:          Aten Zhang <atenzd@gmail.com>
+# For:         deepin-music-player(contains deepin-ui)
+# Descr:       an awesome music player made by LinuxDeepin Team
+# URL:         https://github.com/linuxdeepin/deepin-music-player
+# Needs:       deepin-ui >= 1+git201209101328, mutagen >= 1.8, gst-python >= 0.10, pyquery, scipy, gst-plugins-bad
+# Changelog:   
+# 1+git201209111106-1	12/Sep/2012 by Aten Zhang <atenzd@gmail.com>
+#              * Initial build.
+#
+# 1+git201209111106-2	8/Oct/2012  by Aten Zhang <atenzd@gmail.com>
+#              * Rebuild, with the deepin-ui independent.
+# Run 'sh deepin-music-player.SlackBuild' to build a Slackware package.
+# The package (.tgz) and .txt file as well as build logs are created in /tmp .
+# Install it using 'installpkg'. 
+#
+# -----------------------------------------------------------------------------
+
+# Set initial variables:
+
+PKGNAM=deepin-music-player
+VERSION=${VERSION:-'1+git201209111106'}
+ARCH=${ARCH:-noarch}
+BUILD=${BUILD:-2}
+TAG=${TAG:-_aten}
+CWD=$(pwd)
+
+# Where do we look for DEB packages?
+DEBDIR=${DEBDIR:-$(cd $(dirname $0); pwd)}
+
+DEB="${PKGNAM}_${VERSION}_all.deb"
+DEBURL="http://packages.linuxdeepin.com/deepin/pool/main/d/deepin-music-player/${DEB}"
+
+# Place to build (TMP) package (PKG) and output (OUTPUT) the program:
+TMP=${TMP:-/tmp/build}
+PKG=$TMP/package-$PKGNAM
+OUTPUT=${OUTPUT:-/tmp}
+
+
+# Automatically determine the architecture and Version we're building on from deb;
+#VERSION=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Version | awk '{print $2}')
+# The deepin-music-player is writed in python with no special architecture, so the ARCH determined by the deepin-ui
+#ARCH=$(ar p ${CWD}/deepin-ui*.deb control.tar.gz | tar zxO ./control| grep Architecture | awk '{print $2}')
+
+# Exit the script on errors:
+set -e
+trap 'echo "$0 FAILED at line ${LINENO}" | tee $OUTPUT/error-${PKGNAM}.log' ERR
+# Catch unitialized variables:
+set -u
+P1=${1:-1}
+
+# Create working directories:
+mkdir -p $OUTPUT          # place for the package to be saved
+mkdir -p $TMP/tmp-$PKGNAM # location to build the source
+mkdir -p $PKG             # place for the package to be built
+rm -rf $PKG/*             # always erase old package's contents
+rm -rf $TMP/tmp-$PKGNAM/* # remove the remnants of previous build
+rm -rf $OUTPUT/{configure,make,install,error,makepkg}-$PKGNAM.log
+                          # remove old log files
+                                                                                                                                                                                     
+# DEB packages availability:
+
+# deepin-music-player
+if ! [ -f ${DEB} ]; then
+  echo "Source '$(basename ${DEB})' not available yet..."
+  # Check if the $DEBDIR is writable at all - if not, download to $OUTPUT
+  [ -w "$DEBDIR" ] || DEB="$OUTPUT/$(basename $DEB)"
+  if [ -f ${DEB} ]; then echo "Ah, found it!"; continue; fi
+  if ! [ "x${DEBURL}" == "x" ]; then
+    echo "Will download file to $(dirname $DEB)"
+    wget -nv -T 20 -O "${DEB}" "${DEBURL}" || true
+    if [ $? -ne 0 -o ! -s "${DEB}" ]; then
+      echo "Downloading '$(basename ${DEB})' failed... aborting the bplayerld."
+      mv -f "${DEB}" "${DEB}".FAIL
+      exit 1
+    fi
+  else
+    echo "File '$(basename ${DEB})' not available... aborting the build."
+    exit 1
+  fi
+fi
+
+if [ "$P1" == "--download" ]; then
+  echo "Download complete."
+  exit 0
+fi
+
+# --- PACKAGE BUILDING ---
+
+echo "++"
+echo "|| $PKGNAM-$VERSION"
+echo "++"
+
+cd $PKG
+ar p $CWD/${DEB} data.tar.gz | gzip -d | tar xv || exit 1
+chown -R root:root .
+chmod -R u+w,go+r-w,a+X-s .
+
+# Strip binaries (if any):
+find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
+  | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
+
+# Add a package description:
+declare -i length=$(echo $PKGNAM | wc -m)-1
+blank=' '
+for num in $(seq 2 $length)
+do
+  blank=${blank}' '
+done
+
+mkdir -p $PKG/install
+cat > $PKG/install/slack-desc <<EOF
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|' on
+# the right side marks the last column you can put a character in.  You must make
+# exactly 11 lines for the formatting to be correct.  It's also customary to
+# leave one space after the ':'.
+
+$blank|-----handy-ruler-----------------------------------------------------|
+$PKGNAM: deepin-music-player
+$PKGNAM:
+$PKGNAM: Awesome music player with brilliant and tweakful UI Deepin-UI based,
+$PKGNAM: gstreamer front-end, with features likes search music by pinyin,
+$PKGNAM: quanpin, colorful lyrics supports, and more powerfull functions
+$PKGNAM: you will found.
+$PKGNAM: Just enjoy it! have fun!
+$PKGNAM:
+$PKGNAM:
+$PKGNAM: HomePage:http://www.linuxdeepin.com/
+$PKGNAM:
+EOF
+
+cd ${DEBDIR}
+ar p ${DEB} control.tar.gz | tar zxO ./postinst | grep -vE  "#|set" >> $PKG/install/doinst.sh
+
+cd $PKG
+makepkg --linkadd y --chown n $OUTPUT/${PKGNAM}-${VERSION}-${ARCH}-${BUILD}${TAG}.${PKGTYPE:-txz} 2>&1 | tee $OUTPUT/makepkg-${PKGNAM}.log
