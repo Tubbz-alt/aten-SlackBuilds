@@ -1,0 +1,118 @@
+#!/bin/sh
+
+# Copyright 2012  Aten Zhang, SYSU, China
+# All rights reserved.
+#
+#   Permission to use, copy, modify, and distribute this software for
+#   any purpose with or without fee is hereby granted, provided that
+#   the above copyright notice and this permission notice appear in all
+#   copies.
+#
+#   THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+#   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#   IN NO EVENT SHALL THE AUTHORS AND COPYRIGHT HOLDERS AND THEIR
+#   CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+#   USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+#   OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#   SUCH DAMAGE.
+# -----------------------------------------------------------------------------
+#
+# Slackware SlackBuild script 
+# ===========================
+# By:          Aten Zhang <atenzd@gmail.com>
+# For:         deepinwine-thunder5
+# Descr:       借助wine可以运行于linux下的迅雷5
+# URL:         http://wiki.linuxdeepin.com/index.php?title=Wine_Thunder5&oldid=2121
+# Needs:       
+# Changelog:   
+# 0.0.2-1:     1/Dec/2012 by Aten Zhang <atenzd@gmail.com>
+#              * Initial build.
+#
+# Run 'sh deepinwine-thunder5.SlackBuild' to build a Slackware package.
+# The package (.tgz) and .txt file as well as build logs are created in /tmp .
+# Install it using 'installpkg'. 
+#
+# -----------------------------------------------------------------------------
+
+PKGNAM=${PKGNAM:-deepinwine-thunder5}
+CWD=$(pwd)			# current work directory
+TMP=${TMP:-/tmp}		# temp directory
+PKG=$TMP/package-$PKGNAM	
+OUTPUT=${OUTPUT:-"/tmp"}	# the output package will put here
+
+
+if ! /bin/ls ${PKGNAM}*.deb > /dev/null 2>&1 ; then
+  cat << EOF
+
+This is a script to repackage a Ubuntu linuxqq .deb package
+for Slackware. The binary package like below should be in the 
+same directory as this script:
+
+  linuxqq_v1.0.2-beta1_i386.deb
+  
+This will create a Slackware .tgz(or .txz) package. Install it
+with installpkg or use upgradepkg to upgrade from a previous 
+version.
+
+EOF
+  exit 1
+fi
+
+BUILD=${BUILD:-1}	# The nth time you build the package.(default first)
+VERSION=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Version | awk '{print $2}')
+TAG=${TAG:-_aten}
+ARCH=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Architecture | awk '{print $2}')
+
+#if [ -z "$ARCH" ]; then
+#	case "$( uname -m )" in
+#		i?86) ARCH=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Architecture | awk '{print $2}');;
+#		x86_64) ARCH=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Architecture | awk '{print $2}');;
+#		*) echo "Package for $(uname -m) architecture is not available." ; exit 1 ;;
+#	esac
+#fi
+
+rm -rf $PKG
+mkdir -p $TMP $PKG $OUTPUT
+cd $PKG
+ar p $CWD/${PKGNAM}*.deb data.tar.gz | gzip -d | tar xv || exit 1
+
+if [  $UID = 0 ]; then
+	chown -R root:root .
+fi
+
+mkdir -p $PKG/usr/doc/$PKGNAM-$VERSION
+cp -a  $CWD/README $PKG/usr/doc/$PKGNAM-$VERSION
+cat $CWD/$PKGNAM.SlackBuild > $PKG/usr/doc/$PKGNAM-$VERSION/$PKGNAM.SlackBuild
+
+mkdir -p $PKG/install
+cat > $PKG/install/slack-desc <<EOF
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|' on
+# the right side marks the last column you can put a character in.  You must make
+# exactly 11 lines for the formatting to be correct.  It's also customary to
+# leave one space after the ':'.
+
+$blank|-----handy-ruler-----------------------------------------------------|
+$PKGNAM: $PKGNAM (Wine Thunder5)
+$PKGNAM:
+$PKGNAM: p2sp迅雷5客户端
+$PKGNAM: 借助wine可以运行于linux下的迅雷5
+$PKGNAM:
+$PKGNAM:
+$PKGNAM:
+$PKGNAM:
+$PKGNAM:
+$PKGNAM: HomePage:http://www.xunlei.com/
+$PKGNAM:
+EOF
+
+cd $PKG
+makepkg -l y -c n $OUTPUT/$PKGNAM-$VERSION-$ARCH-$BUILD$TAG.${PKGTYPE:-txz}
+
+rm -rf $PKG
