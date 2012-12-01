@@ -1,0 +1,65 @@
+#!/bin/sh
+
+# Slackware build script for linuxqq
+# Aten Zhang revision date 2012/04/24
+
+# This script builds Slackware package of linuxqq from Ubuntu .deb package.
+
+PKGNAM=${PKGNAM:-WineQQ2012}
+CWD=$(pwd)			# current work directory
+TMP=${TMP:-/tmp}		# temp directory
+PKG=$TMP/package-$PKGNAM	
+OUTPUT=${OUTPUT:-"/tmp"}	# the output package will put here
+
+
+if ! /bin/ls ${PKGNAM}*.deb > /dev/null 2>&1 ; then
+  cat << EOF
+
+This is a script to repackage a Ubuntu linuxqq .deb package
+for Slackware. The binary package like below should be in the 
+same directory as this script:
+
+  linuxqq_v1.0.2-beta1_i386.deb
+  
+This will create a Slackware .tgz(or .txz) package. Install it
+with installpkg or use upgradepkg to upgrade from a previous 
+version.
+
+EOF
+  exit 1
+fi
+
+BUILD=${BUILD:-1}	# The nth time you build the package.(default first)
+VERSION=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Version | awk '{print $2}')
+TAG=${TAG:-_aten}
+ARCH=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Architecture | awk '{print $2}')
+
+#if [ -z "$ARCH" ]; then
+#	case "$( uname -m )" in
+#		i?86) ARCH=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Architecture | awk '{print $2}');;
+#		x86_64) ARCH=$(ar p ${CWD}/${PKGNAM}*.deb control.tar.gz 2> /dev/null | tar zxO ./control 2> /dev/null | grep Architecture | awk '{print $2}');;
+#		*) echo "Package for $(uname -m) architecture is not available." ; exit 1 ;;
+#	esac
+#fi
+
+rm -rf $PKG
+mkdir -p $TMP $PKG $OUTPUT
+cd $PKG
+ar p $CWD/${PKGNAM}*.deb data.tar.gz | gzip -d | tar xv || exit 1
+
+if [  $UID = 0 ]; then
+	chown -R root:root .
+fi
+
+mkdir -p $PKG/usr/doc/$PKGNAM-$VERSION
+cp -a  $CWD/README $PKG/usr/doc/$PKGNAM-$VERSION
+cat $CWD/$PKGNAM.SlackBuild > $PKG/usr/doc/$PKGNAM-$VERSION/$PKGNAM.SlackBuild
+
+mkdir -p $PKG/install
+cat $CWD/slack-desc > $PKG/install/slack-desc
+cat $CWD/doinst.sh > $PKG/install/doinst.sh
+
+cd $PKG
+makepkg -l y -c n $OUTPUT/$PKGNAM-$VERSION-$ARCH-$BUILD$TAG.${PKGTYPE:-txz}
+
+rm -rf $PKG
