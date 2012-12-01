@@ -182,5 +182,15 @@ $PKGNAM: HomePage:http://code.google.com/p/fcitx
 $PKGNAM:
 EOF
 
+cat > $PKG/install/doinst.sh <<EOF
+
+if [ -x /usr/bin/fbterm ]; then
+  if [ -x /sbin/setcap ]; then
+    /sbin/setcap 'cap_sys_tty_config+ep' /usr/bin/fbterm >/dev/null 2>&1
+  fi
+fi
+
+EOF
+
 cd $PKG
 makepkg --linkadd y --chown n $OUTPUT/${PKGNAM}-${VERSION}-${ARCH}-${BUILD}${TAG}.${PKGTYPE:-tgz} 2>&1 | tee $OUTPUT/makepkg-${PKGNAM}.log
