@@ -173,9 +173,8 @@ find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
 find $PKG/usr/man -type f -exec gzip -9 {} \;
 
 mkdir -p $PKG/usr/doc/$PKGNAM-$VERSION
-cp -a AUTHORS COPYING ChangeLog README TODO doc/FAQ doc/HACKING \
-  doc/HowToCreateDictionary doc/Translation doc/StarDictFileFormat \
-  $PKG/usr/doc/$PKGNAM-$VERSION
+cp -a AUTHORS COPYING ChangeLog README \
+  $PKG/usr/doc/$PKGNAM-$VERSION || true
 cat $CWD/$PKGNAM.SlackBuild > $PKG/usr/doc/$PKGNAM-$VERSION/$PKGNAM.SlackBuild
 
 mkdir -p $PKG/install
